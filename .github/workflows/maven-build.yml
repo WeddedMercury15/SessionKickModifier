@@ -8,7 +8,6 @@ on:
   pull_request:
     branches:
       - main
-  # 手动触发也可以
   workflow_dispatch:
 
 jobs:
@@ -16,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       jar-path: ${{ steps.build.outputs.jar }}
+    defaults:
+      run:
+        working-directory: SessionKickModifier  # ← 这里指定子目录
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,20 +33,20 @@ jobs:
         id: build
         run: |
           mvn clean package --batch-mode
-          # 找到生成的 JAR
           echo "::set-output name=jar::$(ls target/SessionKickModifier-*.jar)"
 
   release:
     needs: build
-    # 只有推 Tag 时才发布
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: SessionKickModifier  # 同样指定子目录
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download built JAR from workspace
-        # 直接用 build job 的 workspace
+      - name: Copy built JAR
         run: |
           mkdir out
           cp "${{ needs.build.outputs.jar-path }}" out/
