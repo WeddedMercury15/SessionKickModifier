@@ -15,9 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       jar-path: ${{ steps.build.outputs.jar }}
-    defaults:
-      run:
-        working-directory: SessionKickModifier  # ← 这里指定子目录
+    # 去掉 working-directory，默认就是仓库根目录
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -39,9 +37,6 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: SessionKickModifier  # 同样指定子目录
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
