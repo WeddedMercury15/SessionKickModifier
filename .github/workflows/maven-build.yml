@@ -32,7 +32,7 @@ jobs:
 
       # 4. 上传构建产物到 GitHub Actions Artifact
       - name: Upload plugin JAR
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: SessionKickModifier
           path: target/SessionKickModifier-*.jar
@@ -44,12 +44,12 @@ jobs:
     steps:
       # 下载刚才构建的 artifact
       - name: Download build artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v2
         with:
           name: SessionKickModifier
 
-      # 在 Release 页面自动附加 JAR
-      - name: Create Release Asset
+      # 在 Release 页面自动附加 JAR（如果你想在打 Tag 时自动发布）
+      - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
