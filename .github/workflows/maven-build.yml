@@ -1,4 +1,4 @@
-name: Build & Upload Artifact
+name: Build & Release Plugin
 
 on:
   push:
@@ -8,13 +8,16 @@ on:
   pull_request:
     branches:
       - main
+  # 手动触发也可以
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      jar-path: ${{ steps.build.outputs.jar }}
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -25,25 +28,29 @@ jobs:
           cache: maven
 
       - name: Build with Maven
-        run: mvn clean package --batch-mode
-
-      - name: Upload plugin JAR
-        uses: actions/upload-artifact@v1
-        with:
-          name: SessionKickModifier
-          path: target/SessionKickModifier-*.jar
+        id: build
+        run: |
+          mvn clean package --batch-mode
+          # 找到生成的 JAR
+          echo "::set-output name=jar::$(ls target/SessionKickModifier-*.jar)"
 
   release:
     needs: build
+    # 只有推 Tag 时才发布
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v1
-        with:
-          name: SessionKickModifier
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Create or Update GitHub Release
+      - name: Download built JAR from workspace
+        # 直接用 build job 的 workspace
+        run: |
+          mkdir out
+          cp "${{ needs.build.outputs.jar-path }}" out/
+
+      - name: Create GitHub Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -51,8 +58,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload JAR to Release
-        uses: softprops/action-gh-release@v1
+        uses: actions/upload-release-asset@v1
         with:
-          files: SessionKickModifier-*.jar
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: out/SessionKickModifier-*.jar
+          asset_name: SessionKickModifier-${{ github.ref_name }}.jar
+          asset_content_type: application/java-archive
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
